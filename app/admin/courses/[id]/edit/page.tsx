@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, GripVertical, X, 
   FileText, Link as LinkIcon, Video, Image, FileImage,
   Calendar, User, RotateCcw, Upload, Sparkles, Eye, Clock,
-  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare, Globe, CheckCircle2
+  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare, Globe, CheckCircle2, AlertTriangle
 } from "lucide-react";
 import { 
   DndContext, 
@@ -144,7 +144,6 @@ export default function CourseEditPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [currentLanguage, setCurrentLanguage] = useState("en");
   const [hasChanges, setHasChanges] = useState(false);
 
   // AI Conversation modal state
@@ -303,11 +302,6 @@ export default function CourseEditPage() {
           
           if (loadedCourse.metadata.languages && loadedCourse.metadata.languages.length > 0) {
             setAvailableLanguages(loadedCourse.metadata.languages);
-          } else {
-            const org = getOrganization();
-            if (org.settings?.secondaryLanguages) {
-              setAvailableLanguages(["en", ...org.settings.secondaryLanguages]);
-            }
           }
 
           // Also sync estimatedMinutes from metadata if present
@@ -1930,9 +1924,9 @@ export default function CourseEditPage() {
             )}
 
             {currentLanguage !== "en" && (
-              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-800 flex items-center gap-2">
-                <Sparkles className="size-4" />
-                <strong>Translation View:</strong> You are viewing the AI-translated <b>{currentLanguage === 'es' ? 'Spanish' : 'French'}</b> version of this course. Edits must be made in the primary language (English).
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-center gap-2">
+                <AlertTriangle className="size-4" />
+                <strong>Translation View:</strong> You are viewing the AI-translated <b>{LANGUAGE_LABELS[currentLanguage] || currentLanguage}</b> version of this course. Edits must be made in the primary language (English).
               </div>
             )}
 
@@ -1941,18 +1935,6 @@ export default function CourseEditPage() {
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-3 w-full">
               {/* Meta info */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                <div className="relative group mr-2 z-20">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 font-medium hover:bg-gray-50 shadow-sm transition-all">
-                    <Globe className="w-3.5 h-3.5 text-blue-600" />
-                    Language: {currentLanguage === 'en' ? 'English' : currentLanguage === 'es' ? 'Spanish' : 'French'}
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                  </button>
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">Select Version</div>
-                    <button onClick={() => setCurrentLanguage('en')} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${currentLanguage === 'en' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>English {currentLanguage === 'en' && <CheckCircle2 className="size-3.5 text-blue-600"/>}</button>
-                    <button onClick={() => setCurrentLanguage('es')} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${currentLanguage === 'es' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>Spanish (AI) {currentLanguage === 'es' && <CheckCircle2 className="size-3.5 text-blue-600"/>}</button>
-                  </div>
-                </div>
                 {ownerUser && (
                   <div className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5" />
