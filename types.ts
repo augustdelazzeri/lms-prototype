@@ -5,6 +5,9 @@ export type Role = "ADMIN" | "MANAGER" | "LEARNER";
 export interface OrgSettings {
   timezone: string;
   dateFormat: "YYYY-MM-DD" | "MM/DD/YYYY" | "DD/MM/YYYY";
+  primaryLanguage?: string;
+  secondaryLanguages?: string[];
+  autoGenerate?: boolean;
 }
 
 export interface Organization {
@@ -680,6 +683,7 @@ export interface CourseMetadata {
   estimatedMinutes?: number; // total duration estimate
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   language?: string;         // 'en', 'es', etc.
+  languages?: string[];      // Multi-language support
   readingLevel?: 'basic' | 'standard' | 'technical';
   standards?: CourseStandards;
   lastAIReviewAt?: string;   // ISO timestamp

@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, GripVertical, X, 
   FileText, Link as LinkIcon, Video, Image, FileImage,
   Calendar, User, RotateCcw, Upload, Sparkles, Eye, Clock,
-  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare
+  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare, Globe, CheckCircle2
 } from "lucide-react";
 import { 
   DndContext, 
@@ -144,6 +144,7 @@ export default function CourseEditPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [assignments, setAssignments] = useState<CourseAssignment[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [currentLanguage, setCurrentLanguage] = useState("en");
   const [hasChanges, setHasChanges] = useState(false);
 
   // AI Conversation modal state
@@ -218,7 +219,7 @@ export default function CourseEditPage() {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<CourseAssignment | null>(null);
 
-  // Epic 1G.6: Quiz tab state
+  // Quiz tab state
   const [quiz, setQuiz] = useState<Quiz | undefined>(undefined);
   const [quizType, setQuizType] = useState<"course" | "lesson">("course"); // Whether we're editing course or lesson quiz
   const [selectedLessonIdForQuiz, setSelectedLessonIdForQuiz] = useState<string | null>(null); // Selected lesson for lesson quiz
@@ -227,6 +228,18 @@ export default function CourseEditPage() {
   const [isPreviewQuizOpen, setIsPreviewQuizOpen] = useState(false);
   const [isAIQuizModalOpen, setIsAIQuizModalOpen] = useState(false); // Phase II 1I.2: AI Quiz Generator modal
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Multi-Language View State
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState("en");
+  const [availableLanguages, setAvailableLanguages] = useState(["en"]);
+  const LANGUAGE_LABELS: Record<string, string> = {
+    en: "English",
+    es: "Spanish (Español)",
+    fr: "French (Français)",
+    de: "German (Deutsch)",
+    pt: "Portuguese (Português)"
+  };
   
   // Epic 1G.7: Metadata & Style state
   const [isStandardsModalOpen, setIsStandardsModalOpen] = useState(false);
@@ -287,6 +300,16 @@ export default function CourseEditPage() {
           setDifficulty(loadedCourse.metadata.difficulty);
           setReadingLevel(loadedCourse.metadata.readingLevel);
           setLanguage(loadedCourse.metadata.language || "en");
+          
+          if (loadedCourse.metadata.languages && loadedCourse.metadata.languages.length > 0) {
+            setAvailableLanguages(loadedCourse.metadata.languages);
+          } else {
+            const org = getOrganization();
+            if (org.settings?.secondaryLanguages) {
+              setAvailableLanguages(["en", ...org.settings.secondaryLanguages]);
+            }
+          }
+
           // Also sync estimatedMinutes from metadata if present
           if (loadedCourse.metadata.estimatedMinutes) {
             setEstimatedMinutes(loadedCourse.metadata.estimatedMinutes);
@@ -1730,7 +1753,7 @@ export default function CourseEditPage() {
                 updateLesson(lesson.id, { title: e.target.value });
               }
             }}
-            disabled={isManager}
+            disabled={isManager || currentLanguage !== 'en'}
             className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             aria-label={`Lesson ${index + 1} title`}
           />
@@ -1906,11 +1929,30 @@ export default function CourseEditPage() {
               </div>
             )}
 
+            {currentLanguage !== "en" && (
+              <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-800 flex items-center gap-2">
+                <Sparkles className="size-4" />
+                <strong>Translation View:</strong> You are viewing the AI-translated <b>{currentLanguage === 'es' ? 'Spanish' : 'French'}</b> version of this course. Edits must be made in the primary language (English).
+              </div>
+            )}
+
             {/* Row 2: Meta + Actions */}
             {/* AI Review Banners moved to bottom of overview tab */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-3 w-full">
               {/* Meta info */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                <div className="relative group mr-2 z-20">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-700 font-medium hover:bg-gray-50 shadow-sm transition-all">
+                    <Globe className="w-3.5 h-3.5 text-blue-600" />
+                    Language: {currentLanguage === 'en' ? 'English' : currentLanguage === 'es' ? 'Spanish' : 'French'}
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">Select Version</div>
+                    <button onClick={() => setCurrentLanguage('en')} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${currentLanguage === 'en' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>English {currentLanguage === 'en' && <CheckCircle2 className="size-3.5 text-blue-600"/>}</button>
+                    <button onClick={() => setCurrentLanguage('es')} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${currentLanguage === 'es' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>Spanish (AI) {currentLanguage === 'es' && <CheckCircle2 className="size-3.5 text-blue-600"/>}</button>
+                  </div>
+                </div>
                 {ownerUser && (
                   <div className="flex items-center gap-1">
                     <User className="w-3.5 h-3.5" />
@@ -2117,7 +2159,7 @@ export default function CourseEditPage() {
                           setTitle(e.target.value);
                           setHasChanges(true);
                         }}
-                        disabled={isManager}
+                        disabled={isManager || currentLanguage !== 'en'}
                         placeholder="Enter course title"
                         className={`w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-base ${
                           isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
@@ -2135,7 +2177,7 @@ export default function CourseEditPage() {
                           setDescription(e.target.value);
                           setHasChanges(true);
                         }}
-                        disabled={isManager}
+                        disabled={isManager || currentLanguage !== 'en'}
                         rows={5}
                         placeholder="Describe what learners will gain from this course..."
                         className={`w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none text-base ${
@@ -2308,7 +2350,7 @@ export default function CourseEditPage() {
                         setCategory(e.target.value);
                         setHasChanges(true);
                       }}
-                      disabled={isManager}
+                      disabled={isManager || currentLanguage !== 'en'}
                       placeholder="e.g., Safety, Equipment"
                       className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
                         isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
@@ -2329,7 +2371,7 @@ export default function CourseEditPage() {
                           setEstimatedMinutes(e.target.value ? parseInt(e.target.value) : undefined);
                           setHasChanges(true);
                         }}
-                        disabled={isManager}
+                        disabled={isManager || currentLanguage !== 'en'}
                         min="0"
                         placeholder="e.g., 30"
                         className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
@@ -2351,7 +2393,7 @@ export default function CourseEditPage() {
                         setStatus(e.target.value as CourseStatus);
                         setHasChanges(true);
                       }}
-                      disabled={isManager}
+                      disabled={isManager || currentLanguage !== 'en'}
                       className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
                         isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
                       }`}
@@ -2382,7 +2424,7 @@ export default function CourseEditPage() {
                         setDifficulty(e.target.value ? e.target.value as "beginner" | "intermediate" | "advanced" : undefined);
                         setHasChanges(true);
                       }}
-                      disabled={isManager}
+                      disabled={isManager || currentLanguage !== 'en'}
                       className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
                         isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
                       }`}
@@ -2405,7 +2447,7 @@ export default function CourseEditPage() {
                         setReadingLevel(e.target.value ? e.target.value as "basic" | "standard" | "technical" : undefined);
                         setHasChanges(true);
                       }}
-                      disabled={isManager}
+                      disabled={isManager || currentLanguage !== 'en'}
                       className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
                         isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
                       }`}
@@ -2428,7 +2470,7 @@ export default function CourseEditPage() {
                         setLanguage(e.target.value);
                         setHasChanges(true);
                       }}
-                      disabled={isManager}
+                      disabled={isManager || currentLanguage !== 'en'}
                       className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium ${
                         isManager ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900 hover:border-gray-300'
                       }`}
@@ -2592,6 +2634,32 @@ export default function CourseEditPage() {
 
             {activeTab === "lessons" && (
               <div className="flex flex-col min-h-0 bg-gray-50 rounded-lg">
+                {/* Language Switcher for Lessons */}
+                <div className="flex items-center gap-2 px-6 pt-4 pb-2 border-b border-gray-200 bg-white">
+                  <span className="text-sm font-semibold text-gray-700">Language:</span>
+                  <div className="flex items-center gap-1">
+                    {availableLanguages.map(lang => (
+                      <button
+                        key={lang}
+                        onClick={() => setCurrentLanguage(lang)}
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          currentLanguage === lang
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {LANGUAGE_LABELS[lang] || lang}
+                      </button>
+                    ))}
+                  </div>
+                  {currentLanguage !== 'en' && (
+                    <span className="ml-4 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 flex items-center gap-1">
+                      <AlertTriangle className="size-3" />
+                      Translation View (Read-Only)
+                    </span>
+                  )}
+                </div>
+
                 {/* Epic 1G.5: Manager Read-Only Banner */}
                 {isManager && (
                   <div className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b-2 border-amber-200">
@@ -2615,7 +2683,7 @@ export default function CourseEditPage() {
                     onSetActive={setActiveLessonId}
                     onReorder={handleReorderLessons}
                     onAddLesson={handleAddLesson}
-                    isReadOnly={isManager}
+                    isReadOnly={isManager || currentLanguage !== 'en'}
                   />
                 </div>
 
@@ -2625,7 +2693,7 @@ export default function CourseEditPage() {
                     {/* Lesson Summary — compact horizontal bar */}
                     <LessonSummaryPanelStepper
                       lessonId={activeLessonId}
-                      isReadOnly={isManager}
+                      isReadOnly={isManager || currentLanguage !== 'en'}
                     />
 
                     {/* Focused Lesson View */}
@@ -2633,7 +2701,7 @@ export default function CourseEditPage() {
                       lesson={getLessonById(activeLessonId)!}
                       resources={getResourcesByLessonId(activeLessonId)}
                       totalLessons={lessons.length}
-                      isReadOnly={isManager}
+                      isReadOnly={isManager || currentLanguage !== 'en'}
                       isAIDraft={!!(course?.aiGenerated && (course.status === "ai-draft" || course.status === "in-review"))}
                       sourceLabels={(() => {
                         const lesson = getLessonById(activeLessonId);
@@ -2851,7 +2919,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, progression: "linear" });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                           />
                         </div>
@@ -2882,7 +2950,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, progression: "free" });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                           />
                         </div>
@@ -2921,7 +2989,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, requireAllLessons: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -2938,7 +3006,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, requirePassingQuiz: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -2955,7 +3023,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, lockNextUntilPrevious: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -2972,7 +3040,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, requiresManualCompletion: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -2990,7 +3058,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, requireQuizPassToCompleteLesson: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3007,7 +3075,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, requireAllLessonsToCompleteCourse: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3037,7 +3105,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, issueCertificateOnComplete: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3056,7 +3124,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, minScoreForCertificatePct: value });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           placeholder="e.g., 80"
                           className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium hover:border-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed"
                         />
@@ -3097,7 +3165,7 @@ export default function CourseEditPage() {
                             });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-cyan-600 rounded border-2 border-gray-300 focus:ring-cyan-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3122,7 +3190,7 @@ export default function CourseEditPage() {
                                   setPolicy({ ...policy, retrainIntervalDays: option.value });
                                   setHasChanges(true);
                                 }}
-                                disabled={isManager}
+                                disabled={isManager || currentLanguage !== 'en'}
                                 className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                   policy.retrainIntervalDays === option.value
                                     ? "bg-cyan-600 text-white shadow-md"
@@ -3145,7 +3213,7 @@ export default function CourseEditPage() {
                                     setHasChanges(true);
                                   }
                                 }}
-                                disabled={isManager}
+                                disabled={isManager || currentLanguage !== 'en'}
                                 placeholder="Custom"
                                 className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-all ${
                                   ![30, 90, 180, 365, 730].includes(policy.retrainIntervalDays)
@@ -3182,7 +3250,7 @@ export default function CourseEditPage() {
                               });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             className="w-5 h-5 text-cyan-600 rounded border-2 border-gray-300 focus:ring-cyan-500 focus:ring-2 disabled:opacity-50"
                           />
                         </label>
@@ -3216,7 +3284,7 @@ export default function CourseEditPage() {
                                       setPolicy({ ...policy, reminderDaysBefore: updated.length > 0 ? updated : undefined });
                                       setHasChanges(true);
                                     }}
-                                    disabled={isManager}
+                                    disabled={isManager || currentLanguage !== 'en'}
                                     className={`px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
                                       isSelected
                                         ? "bg-cyan-600 text-white shadow-md"
@@ -3278,7 +3346,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, enableRetakes: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3295,7 +3363,7 @@ export default function CourseEditPage() {
                             setPolicy({ ...policy, showExplanations: e.target.checked });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="w-5 h-5 text-indigo-600 rounded border-2 border-gray-300 focus:ring-indigo-500 focus:ring-2 disabled:opacity-50"
                         />
                       </label>
@@ -3312,7 +3380,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, maxQuizAttempts: e.target.value ? parseInt(e.target.value) : undefined });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             min="1"
                             placeholder="Unlimited"
                             className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium hover:border-gray-300 ${
@@ -3332,7 +3400,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, retakeCooldownMin: e.target.value ? parseInt(e.target.value) : undefined });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             min="0"
                             placeholder="No cooldown"
                             className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium hover:border-gray-300 ${
@@ -3367,7 +3435,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, minVideoWatchPct: e.target.value ? parseInt(e.target.value) : undefined });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             min="0"
                             max="100"
                             placeholder="e.g., 80"
@@ -3392,7 +3460,7 @@ export default function CourseEditPage() {
                               setPolicy({ ...policy, minTimeOnLessonSec: e.target.value ? parseInt(e.target.value) : undefined });
                               setHasChanges(true);
                             }}
-                            disabled={isManager}
+                            disabled={isManager || currentLanguage !== 'en'}
                             min="0"
                             placeholder="e.g., 60"
                             className={`flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm font-medium hover:border-gray-300 ${
@@ -3433,7 +3501,7 @@ export default function CourseEditPage() {
                             setScope({ type: "company-wide" });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="sr-only"
                         />
                         <div className="flex-1">
@@ -3471,7 +3539,7 @@ export default function CourseEditPage() {
                             setScope({ type: "custom" });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="sr-only"
                         />
                         <div className="flex-1">
@@ -3508,7 +3576,7 @@ export default function CourseEditPage() {
                             setScope({ type: "site", siteIds: [] });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="sr-only"
                         />
                         <div className="flex-1">
@@ -3545,7 +3613,7 @@ export default function CourseEditPage() {
                             setScope({ type: "department", departmentIds: [] });
                             setHasChanges(true);
                           }}
-                          disabled={isManager}
+                          disabled={isManager || currentLanguage !== 'en'}
                           className="sr-only"
                         />
                         <div className="flex-1">
@@ -3592,7 +3660,7 @@ export default function CourseEditPage() {
                                   setScope({ ...scope, siteIds: newSiteIds });
                                   setHasChanges(true);
                                 }}
-                                disabled={isManager}
+                                disabled={isManager || currentLanguage !== 'en'}
                                 className="sr-only"
                               />
                               <span className="text-sm font-medium">{site.name}</span>
@@ -3631,7 +3699,7 @@ export default function CourseEditPage() {
                                     setScope({ ...scope, departmentIds: newDeptIds });
                                     setHasChanges(true);
                                   }}
-                                  disabled={isManager}
+                                  disabled={isManager || currentLanguage !== 'en'}
                                   className="sr-only"
                                 />
                                 <span className="text-sm font-medium">{dept.name}</span>
