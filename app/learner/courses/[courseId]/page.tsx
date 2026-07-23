@@ -14,8 +14,14 @@ import {
   isLessonUnlocked,
   getQuizByLesson,
   getAssignmentForUserAndCourse,
-  getOrganization,
+  getAvailableCourseLanguages,
 } from "@/lib/store";
+import {
+  LANGUAGE_LABELS as SHARED_LANGUAGE_LABELS,
+  readStoredLearnerLanguage,
+  storeLearnerLanguage,
+  translateLessonTitle,
+} from "@/lib/lessonI18n";
 import { 
   ArrowLeft, 
   Clock, 
@@ -52,19 +58,21 @@ export default function CourseOverviewPage() {
   const assignment = course ? getAssignmentForUserAndCourse(user.id, courseId) : undefined;
 
   const LANGUAGE_LABELS: Record<string, string> = {
-    en: "English",
+    ...SHARED_LANGUAGE_LABELS,
     es: "Spanish",
     fr: "French",
     de: "German",
     pt: "Portuguese",
     zh: "Mandarin",
-    ja: "Japanese"
+    ja: "Japanese",
   };
 
   useEffect(() => {
-    const org = getOrganization();
-    if (org?.settings?.secondaryLanguages) {
-      setAvailableLanguages(["en", ...org.settings.secondaryLanguages]);
+    const langs = getAvailableCourseLanguages();
+    setAvailableLanguages(langs);
+    const stored = readStoredLearnerLanguage();
+    if (stored && langs.includes(stored)) {
+      setCurrentLanguage(stored);
     }
   }, []);
 
@@ -161,6 +169,7 @@ export default function CourseOverviewPage() {
                         key={lang}
                         onClick={() => {
                           setCurrentLanguage(lang);
+                          storeLearnerLanguage(lang);
                           setShowLanguageMenu(false);
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
@@ -336,7 +345,7 @@ export default function CourseOverviewPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={`text-sm font-bold truncate ${status === "completed" ? "text-gray-400 line-through" : "text-gray-900"}`}>
-                              {currentLanguage === 'en' ? lesson.title : `[${LANGUAGE_LABELS[currentLanguage]}] ${lesson.title}`}
+                              {translateLessonTitle(lesson.title, currentLanguage)}
                             </span>
                             {lesson.lessonType === "assessment" && (
                               <Badge variant="warning" className="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0">Final Exam</Badge>

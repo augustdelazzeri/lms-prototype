@@ -17,6 +17,8 @@ import {
 } from "@/lib/store";
 import { FileText, ClipboardList, StickyNote, Download, ChevronRight, ArrowRight, FileDown } from "lucide-react";
 import Button from "@/components/Button";
+import TranslatedLessonBody from "@/components/TranslatedLessonBody";
+import { LANGUAGE_LABELS, translateLessonTitle } from "@/lib/lessonI18n";
 
 interface LessonContentRendererProps {
   lesson: Lesson;
@@ -30,6 +32,7 @@ interface LessonContentRendererProps {
   onNavigateToLesson?: (lessonId: string) => void;
   textSizeClass?: string;
   highContrast?: boolean;
+  language?: string;
 }
 
 function formatRelativeTime(date: Date): string {
@@ -59,6 +62,7 @@ export default function LessonContentRenderer({
   onNavigateToLesson,
   textSizeClass,
   highContrast,
+  language = "en",
 }: LessonContentRendererProps) {
   const [answeredChecks, setAnsweredChecks] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"lesson" | "quiz" | "notes">("lesson");
@@ -169,8 +173,13 @@ export default function LessonContentRenderer({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className={`text-3xl font-bold ${highContrast ? "text-black" : "text-gray-900"}`}>
-              {lesson.title}
+              {translateLessonTitle(lesson.title, language)}
             </h1>
+            {language !== "en" && (
+              <p className="text-xs font-medium text-blue-700 mt-1">
+                AI Translated · {LANGUAGE_LABELS[language] || language}
+              </p>
+            )}
             {lesson.estimatedMinutes && (
               <p className="text-sm text-gray-500 mt-1">~{lesson.estimatedMinutes} min</p>
             )}
@@ -235,7 +244,11 @@ export default function LessonContentRenderer({
         {activeTab === "lesson" && (
           <>
             <div className="space-y-10">
-              {sortedResources.length === 0 && !hasQuizContent ? (
+              {language !== "en" ? (
+                <div className="rounded-lg border border-blue-100 bg-white px-5 py-4">
+                  <TranslatedLessonBody language={language} />
+                </div>
+              ) : sortedResources.length === 0 && !hasQuizContent ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-gray-500 text-lg">No content available for this lesson.</p>
                 </div>
@@ -290,7 +303,9 @@ export default function LessonContentRenderer({
                 {nextLesson ? (
                   <div>
                     <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Up Next</p>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{nextLesson.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {translateLessonTitle(nextLesson.title, language)}
+                    </h3>
                     <p className="text-sm text-gray-500 mb-3">
                       {nextLesson.estimatedMinutes ? `~${nextLesson.estimatedMinutes} min` : ""}
                     </p>

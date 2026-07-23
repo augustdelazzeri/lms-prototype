@@ -19,10 +19,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowUp, ArrowDown, Plus, Eye, Save, Clock, FileDown, X, Upload, FileText, Presentation, Mic, CircleCheck, ImageIcon, Video, Link as LinkIcon } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Eye, Save, Clock, FileDown, X, Upload, FileText, Presentation, Mic, CircleCheck, ImageIcon, Video, Link as LinkIcon, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Undo2, Redo2, ChevronDown, Sparkles, Youtube, Minus } from "lucide-react";
 import { Lesson, Resource, DownloadableResource } from "@/types";
 import ResourceCardSimple from "./ResourceCardSimple";
 import Button from "@/components/Button";
+import { translateLessonTitle } from "@/lib/lessonI18n";
 
 // Simple time ago formatter
 function timeAgo(dateString: string): string {
@@ -54,6 +55,7 @@ interface LessonFocusedViewProps {
   resources: Resource[];
   totalLessons: number;
   isReadOnly: boolean;
+  language?: string;
   isAIDraft?: boolean;
   sourceLabels?: string[];  // Resolved source attribution labels for AI lessons
   onUpdateTitle: (title: string) => void;
@@ -70,6 +72,213 @@ interface LessonFocusedViewProps {
   onPreviewLesson: () => void;
   onSave: () => void;
   onSaveAndNext: () => void;
+}
+
+type LessonBodyContent = {
+  intro: React.ReactNode;
+  hazardousHeading: string;
+  hazardousItems: string[];
+  whenHeading: string;
+  whenItems: string[];
+  footer: string;
+  imageAlt: string;
+};
+
+const LESSON_BODY_I18N: Record<string, LessonBodyContent> = {
+  en: {
+    intro: (
+      <p>
+        <strong>Lockout/Tagout (LOTO)</strong> is the set of practices used to{" "}
+        <strong>control hazardous energy</strong> so equipment cannot start or release energy while someone is
+        working on it.
+      </p>
+    ),
+    hazardousHeading: "What 'hazardous energy' means (in plain terms)",
+    hazardousItems: [
+      "Electrical energy from power sources",
+      "Mechanical energy stored in springs or moving parts",
+      "Hydraulic / pneumatic pressure",
+      "Thermal energy (heat or cold)",
+      "Gravity (suspended loads)",
+    ],
+    whenHeading: "When LOTO applies (typical triggers)",
+    whenItems: [
+      "Servicing or maintenance where unexpected startup could injure someone",
+      "Clearing jams inside equipment",
+      "Adjusting or replacing machine parts",
+      "Any task where body parts enter a danger zone",
+    ],
+    footer: "If you are unsure whether LOTO is required, stop and ask your supervisor before beginning work.",
+    imageAlt:
+      'Simple diagram showing: machine -> energy sources -> isolation points with locks/tags -> verification ("try start" and test for stored energy)',
+  },
+  es: {
+    intro: (
+      <p>
+        El <strong>bloqueo/etiquetado (LOTO)</strong> es el conjunto de prácticas usadas para{" "}
+        <strong>controlar la energía peligrosa</strong> de modo que el equipo no pueda arrancar ni liberar energía
+        mientras alguien trabaja en él.
+      </p>
+    ),
+    hazardousHeading: "Qué significa «energía peligrosa» (en términos simples)",
+    hazardousItems: [
+      "Energía eléctrica de las fuentes de alimentación",
+      "Energía mecánica almacenada en resortes o piezas en movimiento",
+      "Presión hidráulica / neumática",
+      "Energía térmica (calor o frío)",
+      "Gravedad (cargas suspendidas)",
+    ],
+    whenHeading: "Cuándo aplica LOTO (disparadores típicos)",
+    whenItems: [
+      "Servicio o mantenimiento donde un arranque inesperado podría lesionarte",
+      "Desatascar atascos dentro del equipo",
+      "Ajustar o reemplazar piezas de la máquina",
+      "Cualquier tarea en la que partes del cuerpo entren en una zona de peligro",
+    ],
+    footer:
+      "Si no estás seguro de si se requiere LOTO, detente y pregunta a tu supervisor antes de comenzar el trabajo.",
+    imageAlt:
+      "Diagrama simple: máquina -> fuentes de energía -> puntos de aislamiento con candados/etiquetas -> verificación («intento de arranque» y prueba de energía almacenada)",
+  },
+  pt: {
+    intro: (
+      <p>
+        O <strong>bloqueio/etiquetagem (LOTO)</strong> é o conjunto de práticas usadas para{" "}
+        <strong>controlar energia perigosa</strong> para que o equipamento não possa ligar nem liberar energia
+        enquanto alguém trabalha nele.
+      </p>
+    ),
+    hazardousHeading: "O que significa «energia perigosa» (em termos simples)",
+    hazardousItems: [
+      "Energia elétrica das fontes de alimentação",
+      "Energia mecânica armazenada em molas ou peças móveis",
+      "Pressão hidráulica / pneumática",
+      "Energia térmica (calor ou frio)",
+      "Gravidade (cargas suspensas)",
+    ],
+    whenHeading: "Quando o LOTO se aplica (gatilhos típicos)",
+    whenItems: [
+      "Manutenção ou serviço em que uma partida inesperada poderia causar lesão",
+      "Desobstrução de emperramentos dentro do equipamento",
+      "Ajuste ou substituição de peças da máquina",
+      "Qualquer tarefa em que partes do corpo entrem em uma zona de perigo",
+    ],
+    footer:
+      "Se você não tiver certeza se o LOTO é necessário, pare e pergunte ao seu supervisor antes de começar o trabalho.",
+    imageAlt:
+      'Diagrama simples: máquina -> fontes de energia -> pontos de isolamento com cadeados/etiquetas -> verificação ("tentar ligar" e testar energia armazenada)',
+  },
+  fr: {
+    intro: (
+      <p>
+        Le <strong>consignation/déconsignation (LOTO)</strong> est l&apos;ensemble des pratiques utilisées pour{" "}
+        <strong>maîtriser l&apos;énergie dangereuse</strong> afin que l&apos;équipement ne puisse pas démarrer ni
+        libérer d&apos;énergie pendant qu&apos;une personne y travaille.
+      </p>
+    ),
+    hazardousHeading: "Ce que signifie « énergie dangereuse » (en termes simples)",
+    hazardousItems: [
+      "Énergie électrique des sources d'alimentation",
+      "Énergie mécanique stockée dans des ressorts ou des pièces mobiles",
+      "Pression hydraulique / pneumatique",
+      "Énergie thermique (chaleur ou froid)",
+      "Gravité (charges suspendues)",
+    ],
+    whenHeading: "Quand le LOTO s'applique (déclencheurs typiques)",
+    whenItems: [
+      "Entretien ou maintenance où un démarrage inattendu pourrait blesser quelqu'un",
+      "Dégagement de blocages à l'intérieur de l'équipement",
+      "Réglage ou remplacement de pièces de machine",
+      "Toute tâche où des parties du corps entrent dans une zone de danger",
+    ],
+    footer:
+      "Si vous n'êtes pas sûr que le LOTO est requis, arrêtez-vous et demandez à votre superviseur avant de commencer le travail.",
+    imageAlt:
+      "Schéma simple : machine -> sources d'énergie -> points d'isolation avec cadenas/étiquettes -> vérification (« essai de démarrage » et test d'énergie stockée)",
+  },
+};
+
+const insertMenuSections = [
+  {
+    label: "Media",
+    items: [
+      { id: "ai-image", label: "AI Image", icon: Sparkles },
+      { id: "image-upload", label: "Image - Upload", icon: Upload },
+      { id: "image-url", label: "Image - From URL", icon: ImageIcon },
+    ],
+  },
+  {
+    label: "Embed",
+    items: [
+      { id: "youtube", label: "YouTube Embed", icon: Youtube },
+      { id: "loom", label: "Loom Embed", icon: Video },
+    ],
+  },
+  {
+    label: "Layout",
+    items: [
+      { id: "hr", label: "Horizontal Rule", icon: Minus },
+    ],
+  },
+] as const;
+
+function InsertDropdown({
+  onSelect,
+}: {
+  onSelect: (id: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md border border-transparent hover:border-blue-100"
+      >
+        <Plus className="w-3.5 h-3.5" />
+        Insert
+        <ChevronDown className="w-3.5 h-3.5" />
+      </button>
+      {isOpen && (
+        <div className="absolute z-50 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 right-0">
+          {insertMenuSections.map((section) => (
+            <div key={section.label}>
+              <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {section.label}
+              </div>
+              {section.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onSelect(item.id);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <item.icon className="w-4 h-4 text-gray-500" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const addSectionMenuItems = [
@@ -159,8 +368,12 @@ export default function LessonFocusedView({
   onPreviewLesson,
   onSave,
   onSaveAndNext,
+  language = "en",
 }: LessonFocusedViewProps) {
   const [title, setTitle] = useState(lesson.title);
+  const body = LESSON_BODY_I18N[language] || LESSON_BODY_I18N.en;
+  const displayTitle =
+    language === "en" ? title : translateLessonTitle(lesson.title, language);
   const [estMinutes, setEstMinutes] = useState<string>(lesson.estimatedMinutes?.toString() || "");
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -168,6 +381,11 @@ export default function LessonFocusedView({
   const [newResTitle, setNewResTitle] = useState("");
   const [newResUrl, setNewResUrl] = useState("");
   const [newResFileType, setNewResFileType] = useState("pdf");
+  const [deliveryMode, setDeliveryMode] = useState<"text" | "video">("text");
+  const [showAiImageModal, setShowAiImageModal] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState(
+    'Simple diagram showing: machine -> energy sources -> isolation points with locks/tags -> verification ("try start" and test for stored energy)'
+  );
 
   useEffect(() => {
     setTitle(lesson.title);
@@ -176,6 +394,10 @@ export default function LessonFocusedView({
       setLastSaved(new Date(lesson.updatedAt));
     }
   }, [lesson.id, lesson.title, lesson.updatedAt, lesson.estimatedMinutes]);
+
+  useEffect(() => {
+    setAiImagePrompt(body.imageAlt);
+  }, [language, body.imageAlt]);
 
   // Debounced save
   const debouncedSave = useMemo(
@@ -259,274 +481,273 @@ export default function LessonFocusedView({
   const canMoveDown = currentIndex < totalLessons - 1;
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      {/* Manager Banner */}
-      {isReadOnly && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center gap-2 text-sm">
-            <span>🔒</span>
-            <strong className="text-yellow-900">Manager mode</strong>
-            <span className="text-yellow-700">– read only</span>
-          </div>
-        </div>
-      )}
-
-      {/* Title + Metadata Row — compact */}
-      <div className="flex items-start justify-between gap-4 mb-5 pb-4 border-b border-gray-200">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-              {lesson.order + 1} / {totalLessons}
-            </span>
-            {/* Autosave Indicator */}
-            {!isReadOnly && isSaving ? (
-              <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 font-medium">
-                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving…
-              </span>
-            ) : !isReadOnly && lastSaved ? (
-              <span className="text-[11px] text-emerald-600 font-medium">
-                ✓ Saved {timeAgo(lastSaved.toISOString())}
-              </span>
-            ) : (
-              <span className="text-[11px] text-gray-400">
-                Updated {timeAgo(lesson.updatedAt)}
-              </span>
-            )}
-          </div>
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            disabled={isReadOnly}
-            className={`
-              w-full text-2xl font-bold px-0 py-0 border-0 bg-transparent
-              ${isReadOnly 
-                ? 'cursor-not-allowed text-gray-600' 
-                : 'focus:outline-none text-gray-900 placeholder-gray-400'
-              }
-            `}
-            placeholder="Untitled Lesson"
-          />
-          {/* Estimated time */}
-          <div className="flex items-center gap-2 mt-2">
-            <Clock className="w-3.5 h-3.5 text-gray-400" />
-            <label className="text-xs text-gray-500">Est. time:</label>
-            <input
-              type="number"
-              min="1"
-              max="999"
-              value={estMinutes}
-              onChange={(e) => setEstMinutes(e.target.value)}
-              onBlur={handleEstMinutesBlur}
-              disabled={isReadOnly}
-              placeholder="—"
-              className="w-16 text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
-            />
-            <span className="text-xs text-gray-400">min</span>
-          </div>
-          {/* Source attribution for AI-generated lessons */}
-          {isAIDraft && sourceLabels && sourceLabels.length > 0 && (
-            <p className="text-xs text-gray-400 mt-1.5 flex items-start gap-1.5">
-              <span className="flex-shrink-0">📚</span>
-              <span>{sourceLabels.length === 1 ? "Source" : "Sources"}: {sourceLabels.join(", ")}</span>
-            </p>
-          )}
-        </div>
-
-        {!isReadOnly && (
-          <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-            <button
-              onClick={onMoveUp}
-              disabled={!canMoveUp}
-              className={`p-1.5 rounded-lg hover:bg-gray-100 transition-colors ${!canMoveUp ? 'opacity-30 cursor-not-allowed' : ''}`}
-              title="Move lesson up"
-            >
-              <ArrowUp className="w-4 h-4 text-gray-500" />
-            </button>
-            <button
-              onClick={onMoveDown}
-              disabled={!canMoveDown}
-              className={`p-1.5 rounded-lg hover:bg-gray-100 transition-colors ${!canMoveDown ? 'opacity-30 cursor-not-allowed' : ''}`}
-              title="Move lesson down"
-            >
-              <ArrowDown className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Sections */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-            Sections
-          </h3>
-          {!isReadOnly && (
-            <AddSectionDropdown variant="button" />
-          )}
-        </div>
-
-        {resources.length === 0 ? (
-          <div className="text-center py-12 px-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-            <div className="mb-3 text-4xl">📚</div>
-            <h4 className="text-base font-semibold text-gray-700 mb-1">Start building your lesson</h4>
-            {!isReadOnly && (
-              <>
-                <p className="text-sm text-gray-500 mb-5 max-w-sm mx-auto">
-                  Add text sections, videos, links, or files. Drag to reorder.
-                </p>
-                <AddSectionDropdown variant="empty" />
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={resources.map(r => r.id)}
-                strategy={verticalListSortingStrategy}
-                disabled={isReadOnly}
-              >
-                <div className="space-y-3">
-                  {resources.map((resource) => (
-                    <div key={resource.id} className="relative">
-                      <SortableResourceCard
-                        resource={resource}
-                        isReadOnly={isReadOnly}
-                        isAIDraft={isAIDraft}
-                        onEdit={() => onEditResource(resource)}
-                        onUpdate={onUpdateResource}
-                        onPreview={() => onPreviewResource(resource)}
-                        onDelete={() => onDeleteResource(resource.id)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-
-            {/* Add Section button at the bottom of the list */}
-            {!isReadOnly && (
-              <AddSectionDropdown variant="dashed" />
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Downloadable Resources */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
-            <FileDown className="w-4 h-4 text-gray-400" />
-            Downloadable Resources
-          </h3>
-          {!isReadOnly && (
-            <button
-              onClick={() => setShowAddResource(true)}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add
-            </button>
-          )}
-        </div>
-
-        {(lesson.downloadableResources || []).length === 0 && !showAddResource ? (
-          <p className="text-xs text-gray-400 italic">No downloadable resources attached to this lesson.</p>
-        ) : (
-          <div className="space-y-2">
-            {(lesson.downloadableResources || []).map((res, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Upload className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-800 truncate">{res.title}</span>
-                  <span className="text-[10px] uppercase font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">{res.fileType}</span>
-                </div>
-                {!isReadOnly && (
-                  <button
-                    onClick={() => handleRemoveDownloadableResource(idx)}
-                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {showAddResource && !isReadOnly && (
-          <div className="mt-3 p-3 border border-gray-200 rounded-lg bg-white space-y-2">
-            <input
-              type="text"
-              placeholder="Resource title (e.g. Quick Reference Card)"
-              value={newResTitle}
-              onChange={(e) => setNewResTitle(e.target.value)}
-              className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-            <input
-              type="text"
-              placeholder="URL (optional, leave blank for placeholder)"
-              value={newResUrl}
-              onChange={(e) => setNewResUrl(e.target.value)}
-              className="w-full text-sm px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-            <div className="flex items-center gap-2">
-              <select
-                value={newResFileType}
-                onChange={(e) => setNewResFileType(e.target.value)}
-                className="text-sm px-2 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-400 pr-8"
-              >
-                <option value="pdf">PDF</option>
-                <option value="docx">DOCX</option>
-                <option value="xlsx">XLSX</option>
-                <option value="pptx">PPTX</option>
-                <option value="zip">ZIP</option>
-                <option value="other">Other</option>
-              </select>
-              <div className="flex-1" />
+    <div className="flex flex-col h-full bg-white">
+      {/* AI Image Modal (mock — clickable only) */}
+      {showAiImageModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">Generate image</h3>
               <button
-                onClick={() => { setShowAddResource(false); setNewResTitle(""); setNewResUrl(""); }}
-                className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5"
+                type="button"
+                onClick={() => setShowAiImageModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-5 py-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Image description</label>
+              <textarea
+                value={aiImagePrompt}
+                onChange={(e) => setAiImagePrompt(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+              <p className="text-xs text-gray-400 mt-1.5">Used as both the generation prompt and the image alt text.</p>
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAiImageModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={handleAddDownloadableResource}
-                disabled={!newResTitle.trim()}
-                className="text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 px-3 py-1.5 rounded-md transition-colors"
+                type="button"
+                onClick={() => setShowAiImageModal(false)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
               >
-                Add Resource
+                Generate
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {isReadOnly && (
+        <div className="mx-6 mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 text-sm">
+            <strong className="text-yellow-900">Read only</strong>
+            <span className="text-yellow-700">— content cannot be edited in this view</span>
+          </div>
+        </div>
+      )}
+
+      {/* Title + Lesson delivery */}
+      <div className="px-6 pt-5 pb-4 flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Lesson Title</label>
+          <input
+            type="text"
+            value={displayTitle}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
+            disabled={isReadOnly}
+            className={`
+              w-full text-base font-medium px-3 py-2 border border-gray-300 rounded-md bg-white
+              ${isReadOnly
+                ? "cursor-not-allowed text-gray-600 bg-gray-50"
+                : "focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              }
+            `}
+            placeholder="Untitled Lesson"
+          />
+        </div>
+        <div className="flex-shrink-0 pt-0.5">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5 text-right">Lesson delivery</label>
+          <div className="inline-flex rounded-md border border-gray-300 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setDeliveryMode("text")}
+              className={`px-3 py-2 text-sm flex items-center gap-1.5 ${
+                deliveryMode === "text"
+                  ? "bg-gray-100 text-gray-900 font-medium"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryMode("video")}
+              className={`px-3 py-2 text-sm flex items-center gap-1.5 border-l border-gray-300 ${
+                deliveryMode === "video"
+                  ? "bg-gray-100 text-gray-900 font-medium"
+                  : "bg-white text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              <Video className="w-3.5 h-3.5" />
+              Video
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-6 pt-4 border-t bg-white flex items-center justify-between">
-        <Button variant="secondary" onClick={onPreviewLesson}>
-          <Eye className="w-4 h-4 mr-2" />
-          Preview Lesson
-        </Button>
+      {/* Rich text toolbar */}
+      {!isReadOnly && (
+        <div className="mx-6 px-2 py-1.5 border border-gray-200 rounded-t-md flex flex-wrap items-center gap-0.5 bg-white">
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Undo">
+            <Undo2 className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Redo">
+            <Redo2 className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <button type="button" className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded flex items-center gap-1">
+            Paragraph <ChevronDown className="w-3 h-3" />
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Bold">
+            <Bold className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Italic">
+            <Italic className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Underline">
+            <Underline className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Strikethrough">
+            <Strikethrough className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Link">
+            <LinkIcon className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded font-mono text-xs" title="Code">
+            {"</>"}
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Align left">
+            <AlignLeft className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Align center">
+            <AlignCenter className="w-4 h-4" />
+          </button>
+          <button type="button" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded" title="Align right">
+            <AlignRight className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-1" />
+          <InsertDropdown
+            onSelect={(id) => {
+              if (id === "ai-image") setShowAiImageModal(true);
+            }}
+          />
+        </div>
+      )}
 
+      {/* Document content area */}
+      <div className={`flex-1 overflow-auto px-6 ${!isReadOnly ? "pb-6" : "pb-6"}`}>
+        <div className={`min-h-[320px] border border-gray-200 ${!isReadOnly ? "border-t-0 rounded-b-md" : "rounded-md"} px-5 py-4`}>
+          {/* Sample document content — swaps by language for prototype demo */}
+          <div className="prose prose-sm max-w-none text-gray-800">
+            {body.intro}
+            <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+              {body.hazardousHeading}
+            </h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {body.hazardousItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-2">
+              {body.whenHeading}
+            </h2>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {body.whenItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <p className="text-sm italic text-gray-500 mt-4">
+              {body.footer}
+            </p>
+          </div>
+
+          {/* AI Image placeholder */}
+          <div className="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div className="flex items-start gap-3">
+              <ImageIcon className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-600">
+                  {body.imageAlt}
+                </p>
+                {!isReadOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAiImageModal(true)}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Generate Image
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Existing resources still available below for prototype fidelity */}
+          {resources.length > 0 && (
+            <div className="mt-8 pt-4 border-t border-gray-100">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Attached sections</h3>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={resources.map((r) => r.id)}
+                  strategy={verticalListSortingStrategy}
+                  disabled={isReadOnly}
+                >
+                  <div className="space-y-3">
+                    {resources.map((resource) => (
+                      <div key={resource.id} className="relative">
+                        <SortableResourceCard
+                          resource={resource}
+                          isReadOnly={isReadOnly}
+                          isAIDraft={isAIDraft}
+                          onEdit={() => onEditResource(resource)}
+                          onUpdate={onUpdateResource}
+                          onPreview={() => onPreviewResource(resource)}
+                          onDelete={() => onDeleteResource(resource.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              {!isReadOnly && <AddSectionDropdown variant="dashed" />}
+            </div>
+          )}
+
+          {resources.length === 0 && !isReadOnly && (
+            <div className="mt-6">
+              <AddSectionDropdown variant="dashed" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+        <div className="text-xs text-gray-400">
+          {!isReadOnly && isSaving
+            ? "Saving…"
+            : !isReadOnly && lastSaved
+            ? `Saved ${timeAgo(lastSaved.toISOString())}`
+            : `Updated ${timeAgo(lesson.updatedAt)}`}
+        </div>
         {!isReadOnly && (
-          <div className="flex items-center gap-3">
-            <Button variant="secondary" onClick={onSave}>
-              <Save className="w-4 h-4 mr-2" />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onPreviewLesson}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-white"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Preview
+            </button>
+            <Button variant="primary" onClick={onSave} className="!text-sm !py-1.5 !px-3">
+              <Save className="w-3.5 h-3.5 mr-1.5" />
               Save
-            </Button>
-            <Button variant="primary" onClick={onSaveAndNext}>
-              Save & Next
             </Button>
           </div>
         )}

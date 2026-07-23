@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Award, Calendar, RotateCcw, Clock, Maximize2, Minimize2 } from "lucide-react";
+import { X, Award, Calendar, RotateCcw, Clock, Maximize2, Minimize2, Globe } from "lucide-react";
 import Button from "@/components/Button";
 import { Course, ProgressCourse } from "@/types";
 import {
@@ -16,6 +16,7 @@ import {
 import CertificateModal from "./certificates/CertificateModal";
 import AccessibilityControls from "./AccessibilityControls";
 import { formatDate } from "@/lib/utils";
+import { LANGUAGE_LABELS } from "@/lib/lessonI18n";
 
 interface CoursePlayerHeaderProps {
   course: Course;
@@ -29,6 +30,9 @@ interface CoursePlayerHeaderProps {
   onTextSizeChange: (size: "sm" | "base" | "lg") => void;
   onHighContrastChange: (enabled: boolean) => void;
   onFocusModeChange: (enabled: boolean) => void;
+  availableLanguages?: string[];
+  currentLanguage?: string;
+  onLanguageChange?: (code: string) => void;
 }
 
 export default function CoursePlayerHeader({
@@ -43,8 +47,12 @@ export default function CoursePlayerHeader({
   onTextSizeChange,
   onHighContrastChange,
   onFocusModeChange,
+  availableLanguages = ["en"],
+  currentLanguage = "en",
+  onLanguageChange,
 }: CoursePlayerHeaderProps) {
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const currentUser = getCurrentUser();
   const certificates = getCertificatesByUserId(currentUser.id);
@@ -164,6 +172,45 @@ export default function CoursePlayerHeader({
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {availableLanguages.length > 1 && onLanguageChange && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowLanguageMenu((v) => !v)}
+                      className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm text-gray-700"
+                      title="Change language"
+                    >
+                      <Globe className="w-4 h-4 text-blue-600" />
+                      <span className="hidden sm:inline max-w-[110px] truncate">
+                        {LANGUAGE_LABELS[currentLanguage] || currentLanguage}
+                      </span>
+                    </button>
+                    {showLanguageMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowLanguageMenu(false)} />
+                        <div className="absolute right-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                          {availableLanguages.map((lang) => (
+                            <button
+                              key={lang}
+                              type="button"
+                              onClick={() => {
+                                onLanguageChange(lang);
+                                setShowLanguageMenu(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm ${
+                                currentLanguage === lang
+                                  ? "bg-blue-50 text-blue-700 font-medium"
+                                  : "text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {LANGUAGE_LABELS[lang] || lang}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
                 <AccessibilityControls
                   textSize={textSize}
                   highContrast={highContrast}
