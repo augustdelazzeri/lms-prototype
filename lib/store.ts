@@ -157,7 +157,7 @@ const DEFAULT_ORG_PROFILE: OrganizationProfile = {
   stateRegion: "California",
   additionalCountries: [],
   primaryLanguage: "English",
-  additionalLanguages: ["Spanish", "Portuguese"],
+  additionalLanguages: ["Spanish"],
   regulatoryFrameworks: ["OSHA", "ANSI", "NFPA", "ISO 9001", "ISO 45001"],
   otherRegulations: "ASME Boiler and Pressure Vessel Code, API 510",
   defaultPassingScore: 85,
@@ -881,7 +881,6 @@ export function resetToSeed(): void {
 
   // Organization Profile: Reset
   organizationProfile = { ...DEFAULT_ORG_PROFILE };
-  syncOrgSettingsFromProfile();
 
   // Onboarding: Reset
   onboardingPaths = [...seedOnboardingPaths];
@@ -4739,59 +4738,8 @@ export function updateAISynthesisSettings(updates: Partial<AISynthesisSettings>)
 
 export const getOrganizationProfile = (): OrganizationProfile => ({ ...organizationProfile, additionalCountries: [...organizationProfile.additionalCountries], additionalLanguages: [...organizationProfile.additionalLanguages], regulatoryFrameworks: [...organizationProfile.regulatoryFrameworks] });
 
-const LANG_NAME_TO_CODE: Record<string, string> = {
-  English: "en",
-  Spanish: "es",
-  French: "fr",
-  Portuguese: "pt",
-  German: "de",
-  "Mandarin Chinese": "zh",
-  Japanese: "ja",
-  Korean: "ko",
-  Arabic: "ar",
-  Hindi: "hi",
-};
-
-function syncOrgSettingsFromProfile(): void {
-  const primaryName = organizationProfile.primaryLanguage || "English";
-  const primaryCode = LANG_NAME_TO_CODE[primaryName] || "en";
-  const secondaryCodes = (organizationProfile.additionalLanguages || [])
-    .map((name) => LANG_NAME_TO_CODE[name])
-    .filter((code): code is string => !!code && code !== primaryCode);
-
-  organization = {
-    ...organization,
-    settings: {
-      ...organization.settings,
-      primaryLanguage: primaryCode,
-      secondaryLanguages: secondaryCodes,
-      autoGenerate: true,
-    },
-  };
-}
-
-// Keep OrgSettings in sync with Learning Model languages on boot
-syncOrgSettingsFromProfile();
-
-/** Primary + additional languages from Learning Model, as ISO codes (e.g. ["en","es","pt"]). */
-export function getAvailableCourseLanguages(): string[] {
-  const primaryName = organizationProfile.primaryLanguage || "English";
-  const primaryCode = LANG_NAME_TO_CODE[primaryName] || organization.settings.primaryLanguage || "en";
-  const fromProfile = (organizationProfile.additionalLanguages || [])
-    .map((name) => LANG_NAME_TO_CODE[name])
-    .filter((code): code is string => !!code);
-  const fromSettings = organization.settings.secondaryLanguages || [];
-  const codes = Array.from(new Set([primaryCode, ...fromProfile, ...fromSettings]));
-  // Prototype fallback so language switching is always demonstrable
-  if (codes.length === 1) {
-    codes.push("es");
-  }
-  return codes;
-}
-
 export function updateOrganizationProfile(updates: Partial<OrganizationProfile>): OrganizationProfile {
   organizationProfile = { ...organizationProfile, ...updates, updatedAt: new Date().toISOString() };
-  syncOrgSettingsFromProfile();
   notifyListeners();
   return getOrganizationProfile();
 }

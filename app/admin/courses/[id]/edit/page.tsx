@@ -8,8 +8,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, GripVertical, X, 
   FileText, Link as LinkIcon, Video, Image, FileImage,
   Calendar, User, RotateCcw, Upload, Sparkles, Eye, Clock,
-  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare, Globe, CheckCircle2, AlertTriangle,
-  MoreHorizontal, Share2, Presentation
+  Copy, Edit2, History, Undo2, Redo2, ChevronDown, PanelRightOpen, MessageSquare, Globe, CheckCircle2, AlertTriangle
 } from "lucide-react";
 import { 
   DndContext, 
@@ -114,7 +113,6 @@ import {
   getActiveSkillsV2,
   getAIContextData,
   getLibraryItemById,
-  getAvailableCourseLanguages,
 } from "@/lib/store";
 import { generateQuestionsFromScope, GenScope } from "@/lib/ai/quizGen";
 import EditQuestionModal from "@/components/quiz/EditQuestionModal";
@@ -301,6 +299,10 @@ export default function CourseEditPage() {
           setDifficulty(loadedCourse.metadata.difficulty);
           setReadingLevel(loadedCourse.metadata.readingLevel);
           setLanguage(loadedCourse.metadata.language || "en");
+          
+          if (loadedCourse.metadata.languages && loadedCourse.metadata.languages.length > 0) {
+            setAvailableLanguages(loadedCourse.metadata.languages);
+          }
 
           // Also sync estimatedMinutes from metadata if present
           if (loadedCourse.metadata.estimatedMinutes) {
@@ -310,15 +312,6 @@ export default function CourseEditPage() {
           if (loadedCourse.metadata.tags && loadedCourse.metadata.tags.length > 0) {
             setTags(loadedCourse.metadata.tags);
           }
-        }
-
-        // Learning Model languages drive the Lessons language switcher (prototype demo)
-        const orgLanguages = getAvailableCourseLanguages();
-        const courseLanguages = loadedCourse.metadata?.languages;
-        if (courseLanguages && courseLanguages.length > 1) {
-          setAvailableLanguages(Array.from(new Set([...courseLanguages, ...orgLanguages])));
-        } else {
-          setAvailableLanguages(orgLanguages);
         }
         // Phase II — 1M.1: Load skills
         setSelectedSkills(loadedCourse.skills || []);
@@ -1898,87 +1891,30 @@ export default function CourseEditPage() {
           {/* Left: all page content */}
           <div className="flex-1 min-w-0 py-6 pr-6 overflow-y-auto max-h-[calc(100vh-56px)]">
         <div>
-          {/* Header — production-style */}
-          <div className="mb-4">
-            <button
-              onClick={() => router.push("/admin/courses")}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 mb-3"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-
-            <div className="flex items-start justify-between gap-4">
+          {/* Header */}
+          <div className="mb-5">
+            {/* Row 1: Back + Title + Badges */}
+            <div className="flex items-start gap-2 mb-1">
+              <button
+                onClick={() => router.push("/admin/courses")}
+                className="text-gray-600 hover:text-gray-900 mt-1 flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl font-bold text-gray-900 truncate">{course.title}</h1>
-                  {course.status === "ai-draft" ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
-                      AI Draft
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-900 truncate max-w-[420px]">{course.title}</h1>
+                  <Badge variant={course.status === "published" ? "success" : course.status === "rejected" ? "error" : course.status === "in-review" ? "warning" : course.status === "ai-draft" ? "info" : "default"}>
+                    {course.status === "published" ? "Published" : course.status === "ai-draft" ? "AI Draft" : course.status === "in-review" ? "In Review" : course.status === "rejected" ? "Rejected" : "Draft"}
+                  </Badge>
+                  {course.aiGenerated && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-600 text-xs font-medium rounded-full">
+                      <Sparkles className="w-3 h-3" />
+                      AI Generated
                     </span>
-                  ) : (
-                    <Badge variant={course.status === "published" ? "success" : course.status === "rejected" ? "error" : course.status === "in-review" ? "warning" : "default"}>
-                      {course.status === "published" ? "Published" : course.status === "in-review" ? "In Review" : course.status === "rejected" ? "Rejected" : "Draft"}
-                    </Badge>
                   )}
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                  <span>Created {formatDate(course.createdAt)}</span>
-                  <span>Updated {formatDate(course.updatedAt)}</span>
-                </div>
               </div>
-
-              {!isManager && (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      if (!course || isManager) return;
-                      updateCourse(courseId, {
-                        title,
-                        description,
-                        category: category || undefined,
-                        tags,
-                        estimatedMinutes,
-                        status: "published",
-                        standards,
-                        skills: selectedSkills,
-                        policy,
-                        scope,
-                        metadata: {
-                          objectives,
-                          tags,
-                          estimatedMinutes,
-                          difficulty,
-                          language,
-                          readingLevel,
-                          standards: course.metadata?.standards,
-                        },
-                        conversationHistory: chatMessages.length > 0 ? chatMessages : undefined,
-                      });
-                      setStatus("published");
-                      setHasChanges(false);
-                    }}
-                    className="!text-sm !py-2 !px-4"
-                  >
-                    Publish
-                  </Button>
-                  <button
-                    type="button"
-                    className="p-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50"
-                    title="Share"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50"
-                    title="More"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
             </div>
 
             {isManager && (
@@ -1986,6 +1922,82 @@ export default function CourseEditPage() {
                 <strong>Read-Only Mode:</strong> You are viewing this course as a Manager and cannot make edits.
               </div>
             )}
+
+            {currentLanguage !== "en" && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-center gap-2">
+                <AlertTriangle className="size-4" />
+                <strong>Translation View:</strong> You are viewing the AI-translated <b>{LANGUAGE_LABELS[currentLanguage] || currentLanguage}</b> version of this course. Edits must be made in the primary language (English).
+              </div>
+            )}
+
+            {/* Row 2: Meta + Actions */}
+            {/* AI Review Banners moved to bottom of overview tab */}
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mt-3 w-full">
+              {/* Meta info */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                {ownerUser && (
+                  <div className="flex items-center gap-1">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Owner: <Link href={`/admin/users/${ownerUser.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">{ownerUser.firstName} {ownerUser.lastName}</Link></span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Created {formatDate(course.createdAt)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Updated {formatDate(course.updatedAt)}</span>
+                </div>
+              </div>
+
+              {/* Spacer pushes actions right when room allows */}
+              <div className="flex-1" />
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={handleUndo}
+                  disabled={!canUndo(historyEntity?.type || 'course', historyEntity?.id || courseId)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={getLastUndoSummary(historyEntity?.type || 'course', historyEntity?.id || courseId) || 'Undo'}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleRedo}
+                  disabled={!canRedo(historyEntity?.type || 'course', historyEntity?.id || courseId)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={getLastRedoSummary(historyEntity?.type || 'course', historyEntity?.id || courseId) || 'Redo'}
+                >
+                  <RotateCcw className="w-3.5 h-3.5 transform scale-x-[-1]" />
+                </button>
+                <Button variant="secondary" onClick={handleOpenHistory} className="!text-xs !py-1.5 !px-3">
+                  <Clock className="w-3.5 h-3.5 mr-1.5" />
+                  History
+                </Button>
+                <div className="w-px h-5 bg-gray-200" />
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push(`/admin/courses/${courseId}/preview`)}
+                  className="!text-xs !py-1.5 !px-3"
+                >
+                  <Eye className="w-3.5 h-3.5 mr-1.5" />
+                  Preview
+                </Button>
+                {!isManager && (
+                  <Button
+                    variant="primary"
+                    onClick={handleSave}
+                    disabled={!hasChanges}
+                    className="!text-xs !py-1.5 !px-3"
+                  >
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    Save
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* AI Draft Banner */}
@@ -2006,15 +2018,15 @@ export default function CourseEditPage() {
           )}
 
           {/* Tabs */}
-          <div className="border-b border-gray-200 mb-0 flex items-center justify-between">
-            <nav className="flex gap-6">
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="flex gap-8">
               {(["overview", "lessons", "quiz", "settings", "assignment"] as TabType[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`pb-3 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
                     activeTab === tab
-                      ? "border-blue-600 text-blue-600"
+                      ? "border-blue-500 text-blue-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
@@ -2022,15 +2034,6 @@ export default function CourseEditPage() {
                 </button>
               ))}
             </nav>
-            {activeTab === "lessons" && !isManager && (
-              <button
-                type="button"
-                className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <Presentation className="w-3.5 h-3.5" />
-                Create Presentation
-              </button>
-            )}
           </div>
 
           {/* AI Review Banner — visible across all tabs */}
@@ -2112,296 +2115,12 @@ export default function CourseEditPage() {
           )}
 
           {/* Tab Content */}
-          <div className={activeTab === "lessons" ? "" : "mt-6"}>
+          <div>
             {activeTab === "overview" && (
               <div>
                 {/* Main Content */}
                 <div className="space-y-6">
-                {/* Title & Description — production-style flat Course Details */}
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-gray-900">Course Details</h3>
-                    {!isManager && currentLanguage === 'en' && (
-                      <button
-                        onClick={handleSave}
-                        className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 border border-gray-200 rounded-md hover:bg-gray-50"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        Save
-                      </button>
-                    )}
-                  </div>
-                  <div className="p-6 space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Course Title <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => {
-                          setTitle(e.target.value);
-                          setHasChanges(true);
-                        }}
-                        disabled={isManager || currentLanguage !== 'en'}
-                        placeholder="Enter course title"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                          isManager || currentLanguage !== 'en' ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Description
-                      </label>
-                      <textarea
-                        value={description}
-                        onChange={(e) => {
-                          setDescription(e.target.value);
-                          setHasChanges(true);
-                        }}
-                        disabled={isManager || currentLanguage !== 'en'}
-                        rows={4}
-                        placeholder="Describe what learners will gain from this course..."
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm ${
-                          isManager || currentLanguage !== 'en' ? 'bg-gray-50 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900'
-                        }`}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
-                        <input
-                          type="text"
-                          value={category}
-                          onChange={(e) => { setCategory(e.target.value); setHasChanges(true); }}
-                          disabled={isManager || currentLanguage !== 'en'}
-                          placeholder="e.g., Safety"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-                        <select
-                          value={status}
-                          onChange={(e) => { setStatus(e.target.value as any); setHasChanges(true); }}
-                          disabled={isManager || currentLanguage !== 'en'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        >
-                          <option value="draft">Draft</option>
-                          <option value="ai-draft">AI Draft</option>
-                          <option value="in-review">In Review</option>
-                          <option value="published">Published</option>
-                          <option value="rejected">Rejected</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Difficulty</label>
-                        <select
-                          value={difficulty || ""}
-                          onChange={(e) => { setDifficulty((e.target.value || undefined) as any); setHasChanges(true); }}
-                          disabled={isManager || currentLanguage !== 'en'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        >
-                          <option value="">Select...</option>
-                          <option value="beginner">Beginner</option>
-                          <option value="intermediate">Intermediate</option>
-                          <option value="advanced">Advanced</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Reading Level</label>
-                        <select
-                          value={readingLevel || ""}
-                          onChange={(e) => { setReadingLevel((e.target.value || undefined) as any); setHasChanges(true); }}
-                          disabled={isManager || currentLanguage !== 'en'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        >
-                          <option value="">Select...</option>
-                          <option value="basic">Basic</option>
-                          <option value="standard">Standard</option>
-                          <option value="technical">Technical</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Output Format</label>
-                        <select
-                          disabled={isManager || currentLanguage !== 'en'}
-                          defaultValue="reading"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        >
-                          <option value="reading">Reading Material</option>
-                          <option value="mixed">Mixed</option>
-                          <option value="video">Video</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Language</label>
-                        <select
-                          value={language}
-                          onChange={(e) => { setLanguage(e.target.value); setHasChanges(true); }}
-                          disabled={isManager || currentLanguage !== 'en'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                        >
-                          <option value="en">English</option>
-                          <option value="es">Spanish</option>
-                          <option value="fr">French</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Estimated Minutes</label>
-                      <input
-                        type="number"
-                        value={estimatedMinutes ?? ""}
-                        onChange={(e) => {
-                          setEstimatedMinutes(e.target.value === "" ? undefined : Number(e.target.value));
-                          setHasChanges(true);
-                        }}
-                        disabled={isManager || currentLanguage !== 'en'}
-                        placeholder="e.g. 30"
-                        className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Tags</label>
-                      {!isManager && currentLanguage === 'en' && (
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="text"
-                            value={tagInput}
-                            onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-                            placeholder="Add a tag..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddTag}
-                            disabled={!tagInput.trim()}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        {tags.length === 0 ? (
-                          <p className="text-sm text-gray-400 italic">No tags yet.</p>
-                        ) : (
-                          tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-700 border border-gray-200"
-                            >
-                              {tag}
-                              {!isManager && currentLanguage === 'en' && (
-                                <button onClick={() => handleRemoveTag(tag)} className="hover:text-gray-900">
-                                  <X className="w-3 h-3" />
-                                </button>
-                              )}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Standards</label>
-                      {!isManager && currentLanguage === 'en' && (
-                        <div className="flex gap-2 mb-2">
-                          <input
-                            type="text"
-                            value={standardInput}
-                            onChange={(e) => setStandardInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddStandard())}
-                            placeholder="e.g., OSHA 1910.147"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddStandard}
-                            disabled={!standardInput.trim()}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        {standards.map((standard) => (
-                          <span
-                            key={standard}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-700 border border-gray-200"
-                          >
-                            {standard}
-                            {!isManager && currentLanguage === 'en' && (
-                              <button onClick={() => handleRemoveStandard(standard)} className="hover:text-gray-900">
-                                <X className="w-3 h-3" />
-                              </button>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Learning Objectives — keep but flatten */}
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-base font-semibold text-gray-900">Learning Objectives</h3>
-                  </div>
-                  <div className="p-6">
-                    {!isManager && currentLanguage === 'en' && (
-                      <div className="flex gap-2 mb-4">
-                        <input
-                          type="text"
-                          value={objectiveInput}
-                          onChange={(e) => setObjectiveInput(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddObjective())}
-                          placeholder="Add a learning objective..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddObjective}
-                          disabled={!objectiveInput.trim()}
-                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    )}
-                    {objectives.length === 0 ? (
-                      <p className="text-sm text-gray-400 italic">No objectives yet.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {objectives.map((objective, idx) => (
-                          <li key={idx} className="flex items-start gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
-                            <span className="text-blue-600 font-bold mt-0.5 text-sm">{idx + 1}.</span>
-                            <span className="flex-1 text-sm text-gray-700">{objective}</span>
-                            {!isManager && currentLanguage === 'en' && (
-                              <button
-                                onClick={() => handleRemoveObjective(objective)}
-                                className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-
-                {/* PLACEHOLDER_REMOVE_OLD_COURSE_DETAILS */}
-                <div className="hidden">
+                {/* Title & Description */}
                 <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 overflow-hidden">
                   <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
                     <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -2497,12 +2216,14 @@ export default function CourseEditPage() {
                     )}
                   </div>
                 </div>
-                </div>
 
                 {/* Phase II — 1M.1: Skills Section */}
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h3 className="text-base font-semibold text-gray-900">Skills</h3>
+                <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <div className="w-1 h-6 bg-indigo-600 rounded-full"></div>
+                      Skills
+                    </h3>
                   </div>
                   <div className="p-6">
                     {!isManager && (
@@ -2597,8 +2318,7 @@ export default function CourseEditPage() {
                   </div>
                 </div>
 
-                {/* Metadata Grid — superseded by flat Course Details above */}
-                <div className="hidden">
+                {/* Metadata Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 p-5 hover:shadow-lg transition-shadow">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -2742,10 +2462,8 @@ export default function CourseEditPage() {
                     </select>
                   </div>
                 </div>
-                </div>
 
-                {/* Tags & Standards — superseded by flat Course Details above */}
-                <div className="hidden">
+                {/* Tags & Standards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white rounded-xl shadow-md border-2 border-gray-100 overflow-hidden">
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-gray-200">
@@ -2894,119 +2612,123 @@ export default function CourseEditPage() {
                 </div>
 
               </div>
-              </div>
             )}
 
             {activeTab === "lessons" && (
-              <div className="flex flex-col border border-gray-200 border-t-0 rounded-b-lg bg-white min-h-[560px]">
-                {/* Language switcher — compact bar */}
-                <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50/80">
-                  <span className="text-xs font-medium text-gray-500">Language:</span>
+              <div className="flex flex-col min-h-0 bg-gray-50 rounded-lg">
+                {/* Language Switcher for Lessons */}
+                <div className="flex items-center gap-2 px-6 pt-4 pb-2 border-b border-gray-200 bg-white">
+                  <span className="text-sm font-semibold text-gray-700">Language:</span>
                   <div className="flex items-center gap-1">
-                    {availableLanguages.map((lang) => (
+                    {availableLanguages.map(lang => (
                       <button
                         key={lang}
                         onClick={() => setCurrentLanguage(lang)}
-                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                           currentLanguage === lang
-                            ? "bg-blue-600 text-white"
-                            : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {LANGUAGE_LABELS[lang] || lang}
                       </button>
                     ))}
                   </div>
-                  {currentLanguage !== "en" && (
-                    <span className="ml-2 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                  {currentLanguage !== 'en' && (
+                    <span className="ml-4 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 flex items-center gap-1">
                       <AlertTriangle className="size-3" />
-                      Read-Only Translation
+                      Translation View (Read-Only)
                     </span>
                   )}
                 </div>
 
+                {/* Epic 1G.5: Manager Read-Only Banner */}
                 {isManager && (
-                  <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 text-sm text-amber-900">
-                    View-only (Manager) — You can view lesson content but cannot edit.
+                  <div className="p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b-2 border-amber-200">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg">
+                        <span className="text-xl">📖</span>
+                      </div>
+                      <p className="text-sm text-amber-900 font-semibold">
+                        View-only (Manager) — You can view lesson content but cannot edit or use AI tools.
+                      </p>
+                    </div>
                   </div>
                 )}
+                
+                {/* Stepper */}
+                <div className="bg-white border-b-2 border-gray-200">
+                  <LessonStepper
+                    courseId={courseId}
+                    lessons={lessons}
+                    activeLessonId={activeLessonId || ''}
+                    onSetActive={setActiveLessonId}
+                    onReorder={handleReorderLessons}
+                    onAddLesson={handleAddLesson}
+                    isReadOnly={isManager || currentLanguage !== 'en'}
+                  />
+                </div>
 
-                {/* Two-pane: outline left + editor right */}
-                <div className="flex flex-1 min-h-[520px]">
-                  <div className="w-64 flex-shrink-0 self-stretch">
-                    <LessonStepper
-                      courseId={courseId}
-                      lessons={lessons}
-                      activeLessonId={activeLessonId || ""}
-                      onSetActive={setActiveLessonId}
-                      onReorder={handleReorderLessons}
-                      onAddLesson={handleAddLesson}
-                      isReadOnly={isManager || currentLanguage !== "en"}
-                      language={currentLanguage}
-                      chapterTitle={
-                        course.title.length > 28 ? `${course.title.slice(0, 28)}...` : course.title
-                      }
+                {/* Main Content Area */}
+                {activeLessonId ? (
+                  <div className="flex-1 p-6 space-y-4">
+                    {/* Lesson Summary — compact horizontal bar */}
+                    <LessonSummaryPanelStepper
+                      lessonId={activeLessonId}
+                      isReadOnly={isManager || currentLanguage !== 'en'}
+                    />
+
+                    {/* Focused Lesson View */}
+                    <LessonFocusedView
+                      lesson={getLessonById(activeLessonId)!}
+                      resources={getResourcesByLessonId(activeLessonId)}
+                      totalLessons={lessons.length}
+                      isReadOnly={isManager || currentLanguage !== 'en'}
+                      isAIDraft={!!(course?.aiGenerated && (course.status === "ai-draft" || course.status === "in-review"))}
+                      sourceLabels={(() => {
+                        const lesson = getLessonById(activeLessonId);
+                        if (!lesson?.sourceAttributions || !course?.aiGenerated) return undefined;
+                        return lesson.sourceAttributions.map(id => {
+                          const item = getLibraryItemById(id);
+                          return item ? `${item.title}${item.regulatoryRef ? ` (${item.regulatoryRef})` : ""}` : id;
+                        }).filter((v, i, a) => a.indexOf(v) === i);
+                      })()}
+                      onUpdateTitle={handleUpdateLessonTitle}
+                      onUpdateEstimatedMinutes={handleUpdateEstimatedMinutes}
+                      onUpdateDownloadableResources={handleUpdateDownloadableResources}
+                      onMoveUp={handleMoveLessonUp}
+                      onMoveDown={handleMoveLessonDown}
+                      onAddResource={handleAddResource}
+                      onEditResource={handleEditResource}
+                      onUpdateResource={handleUpdateResourceInline}
+                      onPreviewResource={handlePreviewResource}
+                      onDeleteResource={handleDeleteResource}
+                      onReorderResources={handleReorderResources}
+                      onPreviewLesson={() => setIsLessonPreviewOpen(true)}
+                      onSave={handleSaveLesson}
+                      onSaveAndNext={handleSaveAndNext}
                     />
                   </div>
-
-                  <div className="flex-1 min-w-0 bg-white">
-                    {activeLessonId && getLessonById(activeLessonId) ? (
-                      <LessonFocusedView
-                        lesson={getLessonById(activeLessonId)!}
-                        resources={getResourcesByLessonId(activeLessonId)}
-                        totalLessons={lessons.length}
-                        language={currentLanguage}
-                        isReadOnly={isManager || currentLanguage !== "en"}
-                        isAIDraft={!!(course?.aiGenerated && (course.status === "ai-draft" || course.status === "in-review"))}
-                        sourceLabels={(() => {
-                          const lesson = getLessonById(activeLessonId);
-                          if (!lesson?.sourceAttributions || !course?.aiGenerated) return undefined;
-                          return lesson.sourceAttributions
-                            .map((id) => {
-                              const item = getLibraryItemById(id);
-                              return item
-                                ? `${item.title}${item.regulatoryRef ? ` (${item.regulatoryRef})` : ""}`
-                                : id;
-                            })
-                            .filter((v, i, a) => a.indexOf(v) === i);
-                        })()}
-                        onUpdateTitle={handleUpdateLessonTitle}
-                        onUpdateEstimatedMinutes={handleUpdateEstimatedMinutes}
-                        onUpdateDownloadableResources={handleUpdateDownloadableResources}
-                        onMoveUp={handleMoveLessonUp}
-                        onMoveDown={handleMoveLessonDown}
-                        onAddResource={handleAddResource}
-                        onEditResource={handleEditResource}
-                        onUpdateResource={handleUpdateResourceInline}
-                        onPreviewResource={handlePreviewResource}
-                        onDeleteResource={handleDeleteResource}
-                        onReorderResources={handleReorderResources}
-                        onPreviewLesson={() => setIsLessonPreviewOpen(true)}
-                        onSave={handleSaveLesson}
-                        onSaveAndNext={handleSaveAndNext}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
-                        <FileText className="w-10 h-10 text-gray-300 mb-3" />
-                        <h3 className="text-base font-semibold text-gray-700 mb-1">No lesson selected</h3>
-                        <p className="text-sm text-gray-500 mb-4">Select a lesson or create a new one</p>
-                        {!isManager && (
-                          <Button variant="primary" onClick={handleAddLesson}>
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Lesson
-                          </Button>
-                        )}
-                      </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-96 text-gray-500 bg-white rounded-2xl mx-6 my-6 border-2 border-dashed border-gray-200">
+                    <div className="text-6xl mb-4">📚</div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">No lesson selected</h3>
+                    <p className="text-sm text-gray-500 mb-6">Select a lesson from above or create a new one to get started</p>
+                    {!isManager && (
+                      <Button variant="primary" onClick={handleAddLesson} className="mt-2">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Your First Lesson
+                      </Button>
                     )}
                   </div>
-                </div>
+                )}
 
                 {/* Slide Editor Modal */}
                 <SlideEditorModal
                   isOpen={!!slideEditorResource}
                   onClose={() => setSlideEditorResource(null)}
                   slides={slideEditorResource?.slides || []}
-                  resourceTitle={slideEditorResource?.title || ""}
+                  resourceTitle={slideEditorResource?.title || ''}
                 />
 
                 {/* Narrated Walkthrough Editor Modal */}

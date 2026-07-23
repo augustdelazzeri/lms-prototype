@@ -5,7 +5,6 @@ import { Circle, CircleDot, CheckCircle2, Lock, ClipboardList, StickyNote, Downl
 import { Course, Lesson, ProgressLesson } from "@/types";
 import { isLessonUnlocked, hasLessonNote, getQuizByLesson } from "@/lib/store";
 import { getCurrentUser } from "@/lib/store";
-import { translateLessonTitle } from "@/lib/lessonI18n";
 
 interface CoursePlayerSidebarProps {
   course: Course;
@@ -15,7 +14,6 @@ interface CoursePlayerSidebarProps {
   onLessonClick: (lessonId: string) => void;
   onBlockedNavigation?: (message: string) => void;
   hidden?: boolean;
-  language?: string;
 }
 
 export default function CoursePlayerSidebar({
@@ -26,7 +24,6 @@ export default function CoursePlayerSidebar({
   onLessonClick,
   onBlockedNavigation,
   hidden,
-  language = "en",
 }: CoursePlayerSidebarProps) {
   const currentUser = getCurrentUser();
   const [hoveredLockedLesson, setHoveredLockedLesson] = useState<string | null>(null);
@@ -120,7 +117,7 @@ export default function CoursePlayerSidebar({
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className={`text-sm block truncate ${isCurrent ? "font-medium text-gray-900" : ""}`}>
-                      {translateLessonTitle(lesson.title, language)}
+                      {lesson.title}
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
                       {lesson.estimatedMinutes && (

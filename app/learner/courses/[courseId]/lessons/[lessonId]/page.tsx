@@ -30,15 +30,9 @@ import {
   subscribe,
   getOrCreateProgressLesson,
   updateLessonProgress,
-  getAvailableCourseLanguages,
 } from "@/lib/store";
 import { FEATURES } from "@/lib/features";
 import { Course, Lesson, ProgressLesson } from "@/types";
-import {
-  readStoredLearnerLanguage,
-  storeLearnerLanguage,
-  translateLessonTitle,
-} from "@/lib/lessonI18n";
 
 type TextSize = "sm" | "base" | "lg";
 const TEXT_SIZE_CLASS: Record<TextSize, string> = {
@@ -95,23 +89,6 @@ export default function CoursePlayerLessonPage() {
     }
     return false;
   });
-
-  const [availableLanguages, setAvailableLanguages] = useState<string[]>(["en"]);
-  const [currentLanguage, setCurrentLanguage] = useState("en");
-
-  useEffect(() => {
-    const langs = getAvailableCourseLanguages();
-    setAvailableLanguages(langs);
-    const stored = readStoredLearnerLanguage();
-    if (stored && langs.includes(stored)) {
-      setCurrentLanguage(stored);
-    }
-  }, []);
-
-  const handleLanguageChange = (code: string) => {
-    setCurrentLanguage(code);
-    storeLearnerLanguage(code);
-  };
 
   // Persist accessibility prefs
   const handleTextSizeChange = (size: TextSize) => {
@@ -425,7 +402,7 @@ export default function CoursePlayerLessonPage() {
             <span>/</span>
             <Link href={`/learner/courses/${courseId}`} className="hover:text-gray-900">{course.title}</Link>
             <span>/</span>
-            <span className="text-gray-900">{translateLessonTitle(currentLesson.title, currentLanguage)}</span>
+            <span className="text-gray-900">{currentLesson.title}</span>
           </div>
         </div>
 
@@ -453,9 +430,6 @@ export default function CoursePlayerLessonPage() {
           onTextSizeChange={handleTextSizeChange}
           onHighContrastChange={handleHighContrastChange}
           onFocusModeChange={handleFocusModeChange}
-          availableLanguages={availableLanguages}
-          currentLanguage={currentLanguage}
-          onLanguageChange={handleLanguageChange}
         />
 
         <div className="flex flex-1 overflow-hidden">
@@ -471,7 +445,6 @@ export default function CoursePlayerLessonPage() {
               setShowToast(true);
             }}
             hidden={focusMode}
-            language={currentLanguage}
           />
 
           {/* Main Content */}
@@ -526,7 +499,6 @@ export default function CoursePlayerLessonPage() {
               onNavigateToLesson={(lid) => handleLessonClick(lid)}
               textSizeClass={TEXT_SIZE_CLASS[textSize]}
               highContrast={highContrast}
-              language={currentLanguage}
             />
           </main>
         </div>
@@ -544,7 +516,7 @@ export default function CoursePlayerLessonPage() {
           thresholdMessages={getThresholdMessages()}
           completedCount={completedCount}
           totalCount={lessons.length}
-          nextLessonTitle={nextLesson ? translateLessonTitle(nextLesson.title, currentLanguage) : undefined}
+          nextLessonTitle={nextLesson?.title}
           onPrev={handlePrev}
           onNext={handleNext}
           onMarkComplete={handleMarkComplete}

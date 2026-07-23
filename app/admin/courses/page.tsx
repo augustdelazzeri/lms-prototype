@@ -8,6 +8,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import RouteGuard from "@/components/RouteGuard";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
+import Badge from "@/components/Badge";
 import {
   getCourses,
   deleteCourse,
@@ -69,13 +70,7 @@ function CoursesPageInner() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   const uniqueCategories = Array.from(
@@ -108,42 +103,27 @@ function CoursesPageInner() {
   const getStatusBadge = (course: Course) => {
     switch (course.status) {
       case "published":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-            Published
-          </span>
-        );
+        return <Badge variant="success">Published</Badge>;
       case "ai-draft":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+            <Sparkles className="w-3 h-3" />
             AI Draft
           </span>
         );
       case "in-review":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-            In Review
-          </span>
-        );
+        return <Badge variant="warning">In Review</Badge>;
       case "rejected":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-            Rejected
-          </span>
-        );
+        return <Badge variant="error">Rejected</Badge>;
       case "generating":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 animate-pulse rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 animate-pulse bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
             <Sparkles className="w-3 h-3" />
             Generating...
           </span>
         );
       default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
-            Draft
-          </span>
-        );
+        return <Badge variant="default">Draft</Badge>;
     }
   };
 
@@ -160,7 +140,8 @@ function CoursesPageInner() {
             </div>
             {!isManager && (
               <Button variant="primary" onClick={() => router.push("/admin/courses/generate")}>
-                + Create Course
+                <Sparkles className="w-4 h-4 mr-2" />
+                Create Course
               </Button>
             )}
           </div>
@@ -171,46 +152,58 @@ function CoursesPageInner() {
             </div>
           )}
 
-          {/* Filters — production-style row */}
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as "" | CourseStatus)}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Status: All</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-              <option value="ai-draft">AI Draft</option>
-              <option value="in-review">In Review</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Category: All</option>
-              {uniqueCategories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-            <div className="relative ml-auto">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by title..."
-                className="rounded-md border border-gray-300 pl-9 pr-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {/* Filters */}
+          <Card className="mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Title or category..."
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as "" | CourseStatus)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="ai-draft">AI Draft</option>
+                  <option value="in-review">In Review</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">All Categories</option>
+                  {uniqueCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-sm text-blue-600 hover:underline">
-                Clear filters
-              </button>
+              <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+                <span>Showing {filteredCourses.length} of {courses.length} courses</span>
+                <button onClick={clearFilters} className="text-primary hover:underline">
+                  Clear filters
+                </button>
+              </div>
             )}
-          </div>
+          </Card>
 
           {/* Table */}
           {courses.length === 0 ? (
@@ -252,14 +245,24 @@ function CoursesPageInner() {
                       </tr>
                     ) : (
                       filteredCourses.map((course) => {
+                        const isAI = course.aiGenerated === true;
+
                         return (
                           <tr
                             key={course.id}
                             className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => router.push(`/admin/courses/${course.id}/edit`)}
+                            onClick={() => router.push(`/admin/courses/${course.id}`)}
                           >
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                              <span className="hover:text-blue-600 transition-colors">{course.title}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="hover:text-blue-600 transition-colors">{course.title}</span>
+                                {isAI && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 text-purple-500 text-[10px] font-medium rounded flex-shrink-0">
+                                    <Sparkles className="w-2.5 h-2.5" />
+                                    AI
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-sm">
                               {course.tags && course.tags.length > 0 ? (

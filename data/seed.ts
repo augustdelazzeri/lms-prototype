@@ -10,9 +10,6 @@ export const organization: Organization = {
   settings: {
     timezone: "America/Los_Angeles",
     dateFormat: "YYYY-MM-DD",
-    primaryLanguage: "en",
-    secondaryLanguages: ["es", "pt"],
-    autoGenerate: true,
   },
   styleGuide: {
     tone: 'professional',
