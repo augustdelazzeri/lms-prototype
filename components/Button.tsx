@@ -1,6 +1,11 @@
 // Phase I Epic 1 & UI Refresh v2: EHS-style buttons with exact tokens
 import React from "react";
 
+/** 
+ * WARNING: Core component used by GUARD-1302 isolated prototype.
+ * Verify changes against /app/GUARD-1302.
+ */
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "destructive";
   children: React.ReactNode;

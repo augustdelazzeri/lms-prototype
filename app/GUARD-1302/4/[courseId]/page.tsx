@@ -21,7 +21,7 @@ import {
   readStoredLearnerLanguage,
   storeLearnerLanguage,
   translateLessonTitle,
-} from "@/lib/lessonI18n";
+} from "@/lib/lessonI18n-guard-1302";
 import { 
   ArrowLeft, 
   Clock, 

@@ -17,7 +17,7 @@ import {
 } from "@/lib/store";
 import { FileText, ClipboardList, StickyNote, Download, ChevronRight, ArrowRight, FileDown } from "lucide-react";
 import Button from "@/components/Button";
-import TranslatedLessonBody from "@/components/TranslatedLessonBody";
+import TranslatedLessonBody from "@/components/TranslatedLessonBody-guard-1302";
 import { LANGUAGE_LABELS, translateLessonTitle } from "@/lib/lessonI18n";
 
 interface LessonContentRendererProps {

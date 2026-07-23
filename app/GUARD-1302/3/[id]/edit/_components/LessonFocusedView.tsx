@@ -23,7 +23,7 @@ import { ArrowUp, ArrowDown, Plus, Eye, Save, Clock, FileDown, X, Upload, FileTe
 import { Lesson, Resource, DownloadableResource } from "@/types";
 import ResourceCardSimple from "./ResourceCardSimple";
 import Button from "@/components/Button";
-import { translateLessonTitle } from "@/lib/lessonI18n";
+import { translateLessonTitle } from "@/lib/lessonI18n-guard-1302";
 
 // Simple time ago formatter
 function timeAgo(dateString: string): string {

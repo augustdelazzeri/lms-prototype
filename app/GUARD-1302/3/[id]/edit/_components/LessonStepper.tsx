@@ -20,7 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronRight, GripVertical, Plus, CheckCircle2 } from "lucide-react";
 import { Lesson } from "@/types";
-import { translateLessonTitle } from "@/lib/lessonI18n";
+import { translateLessonTitle } from "@/lib/lessonI18n-guard-1302";
 
 interface LessonStepperProps {
   courseId: string;

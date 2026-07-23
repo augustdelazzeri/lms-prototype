@@ -38,7 +38,7 @@ import {
   readStoredLearnerLanguage,
   storeLearnerLanguage,
   translateLessonTitle,
-} from "@/lib/lessonI18n";
+} from "@/lib/lessonI18n-guard-1302";
 
 type TextSize = "sm" | "base" | "lg";
 const TEXT_SIZE_CLASS: Record<TextSize, string> = {

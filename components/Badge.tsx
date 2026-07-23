@@ -1,6 +1,11 @@
 // Phase I Epic 1 & Polish Pack: Badge component
 import React from "react";
 
+/** 
+ * WARNING: Core component used by GUARD-1302 isolated prototype.
+ * Verify changes against /app/GUARD-1302.
+ */
+
 interface BadgeProps {
   children: React.ReactNode;
   variant?: "success" | "warning" | "error" | "info" | "default" | "exempt";
