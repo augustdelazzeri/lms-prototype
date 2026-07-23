@@ -446,7 +446,7 @@ export default function CoursePlayerLessonPage() {
           }}
           currentLessonId={lessonId}
           onExit={() => router.push("/GUARD-1302/learner")}
-          onResume={(resumeLessonId) => router.push(`/GUARD-1302/learner/courses/${courseId}/lessons/${resumeLessonId}`)}
+          onResume={(resumeLessonId) => router.push(`/GUARD-1302/5/${resumeLessonId}`)}
           textSize={textSize}
           highContrast={highContrast}
           focusMode={focusMode}
